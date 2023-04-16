@@ -1,4 +1,6 @@
 import java.io.File;
+import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,18 +32,21 @@ public class MetroGraph {
 
 		Graph<Node, Edge> graph = new MetroGraph().generateGraph(inputTime, inputDay);
 
-		System.out.print("\nInput an origin: "); // User input (origin)
-		String origin = input.nextLine();
+		if (!graph.getNodes().isEmpty()) {
+			System.out.print("\nInput an origin: "); // User input (origin)
+			String origin = input.nextLine();
 
-		System.out.print("\nInput a destination: "); // User input (destination)
-		String destination = input.nextLine();
+			System.out.print("\nInput a destination: "); // User input (destination)
+			String destination = input.nextLine();
 
-		input.close();
+			input.close();
 
-		/*
-		We will perform Dijkstra's algorithm to calculate the shortest path between two Nodes/stations.
-		*/
-		System.out.println("Shortest Path: " + graph.dijkstras(origin, destination));
+			/*
+			We will perform Dijkstra's algorithm to calculate the shortest path between two Nodes/stations.
+			*/
+			System.out.println("Shortest Path: " + graph.dijkstras(origin, destination));
+			System.out.println("Shortest Walk Path: " + graph.shortestWalkPath(origin, destination));
+		}
 	}
 
 	/**
@@ -61,78 +66,81 @@ public class MetroGraph {
 	 * @return our Graph
 	 */
 	public Graph<Node, Edge> generateGraph(String inputTime, String inputDay) {
-		if (Time.validate(inputTime) && Day.validate(inputDay)) {
-			int time = Integer.valueOf(inputTime);
+		try {
+			if (Time.validate(inputTime) && Day.validate(inputDay)) {
+				int time = Integer.valueOf(inputTime);
 
-			/*
-			Here we'll read the csv file and access its data
-			 */
-			Scanner scanner;
-			try {
-				scanner = new Scanner(new File("mta_stations.csv"));
-				scanner.nextLine();
-
-				Graph<Node, Edge> graph = new Graph<>(new HashSet<>(), new HashSet<>());
-
-				boolean rush = (time >= 700 && time <= 1000) || (time >= 1600 && time <= 2000); // Calculate rush hours
-
-				while (scanner.hasNextLine()) {
-					String[] split = scanner.nextLine().split(",");
-
-					/*
-					We'll just get purely numerical coordinates and ignore the unnecessary POINT(... stuff
-					 */
-					String coordinates = split[3].substring(split[3].indexOf('(') + 1, split[3].length() - 1);
-					int separation = coordinates.indexOf(' ');
-
-					double longitude = Double.valueOf(coordinates.substring(0, separation)), latitude = Double.valueOf(coordinates.substring(separation + 1));
-
-					/*
-					If we have multiple conditions, which we do, we will just store them all as one string, as we see
-					in the 5th column of the csv file. Because I have split each column's values by the ',' character,
-					this is necessary.
-					 */
-					StringBuilder build = new StringBuilder();
-
-					for (int i = 5; i < split.length; i++) {
-						build.append(split[i]);
-						if (i < split.length - 1) build.append(",");
-					}
-
-					/*
-					Instantiating our Nodes that we'll then store into our set.
-					 */
-					Node node = new Node(split[2], split[4].split("-"), longitude, latitude, build.toString()).applyFields(time, rush, Day.type(inputDay)).build();
-					for (Node existing : graph.getNodes()) {
-						if (existing.getStation().equals(node.getStation())) {
-							node.getTrains().forEach(train -> existing.addTrain(train));
-						}
-					}
-					graph.addNode(node);
-				}
-				scanner.close();
 				/*
-				We'll create some Edges. This runs quite inefficiently, but that's fine. We just need an accurate
-				network of stations.
+				Here we'll read the csv file and access its data
+				 */
+				Scanner scanner;
+				try {
+					scanner = new Scanner(new File("mta_stations.csv"));
+					scanner.nextLine();
 
-				TODO: make the graph somewhat smaller(?)
-				*/
-				for (Node from : graph.getNodes()) {
-					for (Node to : graph.getNodes()) {
-						for (Train train : to.getTrains()) {
-							if (from.getTrains().contains(train)) {
-								Edge edge = new Edge(from, to);
+					Graph<Node, Edge> graph = new Graph<>(new HashSet<>(), new HashSet<>());
 
-								graph.addEdge(edge);
-								graph.addEdge(from, edge);
+					boolean rush = (time >= 700 && time <= 1000) || (time >= 1600 && time <= 2000); // Calculate rush hours
+
+					while (scanner.hasNextLine()) {
+						String[] split = scanner.nextLine().split(",");
+
+						/*
+						We'll just get purely numerical coordinates and ignore the unnecessary POINT(... stuff
+						 */
+						String coordinates = split[3].substring(split[3].indexOf('(') + 1, split[3].length() - 1);
+						int separation = coordinates.indexOf(' ');
+
+						double longitude = Double.valueOf(coordinates.substring(0, separation)), latitude = Double.valueOf(coordinates.substring(separation + 1));
+
+						/*
+						If we have multiple conditions, which we do, we will just store them all as one string, as we see
+						in the 5th column of the csv file. Because I have split each column's values by the ',' character,
+						this is necessary.
+						 */
+						StringBuilder build = new StringBuilder();
+
+						for (int i = 5; i < split.length; i++) {
+							build.append(split[i]);
+							if (i < split.length - 1) build.append(",");
+						}
+
+						/*
+						Instantiating our Nodes that we'll then store into our set.
+						 */
+						Node node = new Node(split[2], split[4].split("-"), longitude, latitude, build.toString()).applyFields(time, rush, Day.type(inputDay)).build();
+						for (Node existing : graph.getNodes()) {
+							if (existing.getStation().equals(node.getStation())) {
+								node.getTrains().forEach(train -> existing.addTrain(train));
+							}
+						}
+						graph.addNode(node);
+					}
+					scanner.close();
+
+					/*
+					We'll create some Edges. This runs quite inefficiently, but that's fine. We just need an accurate
+					network of stations.
+
+					TODO: make the graph somewhat smaller(?)
+					*/
+					for (Node from : graph.getNodes()) {
+						for (Node to : graph.getNodes()) {
+							for (Train train : to.getTrains()) {
+								if (from.getTrains().contains(train)) {
+									Edge edge = new Edge(from, to);
+
+									graph.addEdge(edge);
+									graph.addEdge(from, edge);
+								}
 							}
 						}
 					}
-				}
-				return graph;
-			} catch (Exception e) { e.printStackTrace(); }
-		} else {
-			System.out.println("Invalid input data.");
+					return graph;
+				} catch (Exception e) { e.printStackTrace(); }
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 		return new Graph<>(new HashSet<>(), new HashSet<>());
 	}
@@ -148,9 +156,6 @@ public class MetroGraph {
 		private Set<E> edges;
 
 		private Map<V, List<E>> graph;
-
-		private boolean rush;
-		private int time;
 
 		public Graph(Set<V> nodes, Set<E> edges) {
 			this.nodes = nodes;
@@ -189,21 +194,24 @@ public class MetroGraph {
 			will throw an error;
 			 */
 			if (source == null || dest == null) {
-				throw new NoSuchElementException();
+				throw new NoSuchElementException("Invalid origin or destination station.");
 			}
+			this.resetVisits();
 
 			/*
 			Dijkstra's algorithm using Pair and PriorityQueue
 			 */
-			Map<Node, Pair<Path, Integer>> tentative = new HashMap<>();
+			Map<Node, Pair<Path, Double>> tentative = new HashMap<>();
 			Queue<Node> heap = new PriorityQueue<>((from, to) -> (int) from.distance(to));
 
+			// Begin setting up tentative distances.
 			for (V node : this.nodes) {
-				tentative.put(node, new Pair<>(new Path(node), Integer.MAX_VALUE));
+				tentative.put(node, Pair.of(new Path(node), Double.MAX_VALUE));
 			}
-			tentative.put(source, new Pair<>(new Path(source), 0));
+			tentative.put(source, Pair.of(new Path(source), 0.0));
 			heap.add(source);
 
+			// Run the algorithm and take care of visited nodes.
 			while (!heap.isEmpty()) {
 				source = heap.poll();
 				List<E> edges = this.graph.get(source);
@@ -216,9 +224,13 @@ public class MetroGraph {
 					if (!to.visited()) {
 						heap.add(to);
 
-						if (tentative.get(source).getRight() + source.distance(to) < tentative.get(to).getRight()) {
+						double distance = tentative.get(source).getRight() + source.distance(to);
+
+						if (distance < tentative.get(to).getRight()) {
+							// We will override our old Path with a new one containing this new Node/station
+							// at the head.
 							Path path = new Path(tentative.get(source).getLeft()).addToPath(to);
-							tentative.put(to, new Pair<>(path, (int) (tentative.get(source).getRight() + source.distance(to))));
+							tentative.put(to, new Pair<>(path, distance));
 						}
 					}
 				}
@@ -227,6 +239,59 @@ public class MetroGraph {
 		}
 		public Path dijkstras(Node origin, Node destination) {
 			return dijkstras(origin.getStation(), destination.getStation());
+		}
+
+		/**
+		 * In this definition of "shortest path", we will attempt to create a path using
+		 * Dijkstra's algorithm that has the least amount of walks required (least transfers), if Dijkstra's path
+		 * does not already provide the path with the least amount of walks.
+		 *
+		 * This is done by finding the most final stop that contains a train that is able to connect to
+		 * a station from earlier in the path. This removes any duplicates, if found, and will
+		 * attempt to create the shortest path with the shortest amount of walks.
+		 *
+		 * @return Path with least amount of walks
+		 */
+		public Path shortestWalkPath(String origin, String destination) {
+			this.resetVisits();
+
+			Path dijkstras = dijkstras(origin, destination);
+			LinkedList<Node> path = dijkstras.path();
+
+			int i = 0, j = -1, track = -1;
+			Iterator<Node> outerItr = new Path<>(path).path().iterator();
+
+			outer: while (outerItr.hasNext()) {
+				Node next = outerItr.next();
+
+				Iterator<Node> innerItr = new Path<>(path).path().iterator();
+
+				while (innerItr.hasNext()) {
+					track++;
+					Node nextNext = innerItr.next();
+
+					for (Train outerTrain : next.getTrains()) {
+						for (Train innerTrain : nextNext.getTrains()) {
+							if (outerTrain.train().equals(innerTrain.train())) {
+								j = track;
+							}
+						}
+					}
+				}
+				for (int remove = 0; remove < j - i - 1; remove++) {
+					path.remove(i + 1);
+				}
+				track = -1;
+				j = 0;
+				i++;
+			}
+			return new Path(path);
+		}
+
+		public void resetVisits() {
+			this.graph.keySet().forEach(node -> node.unvisit());
+			this.nodes.forEach(node -> node.unvisit());
+			this.edges.forEach(edge -> { edge.from().unvisit(); edge.to().unvisit(); });
 		}
 
 		/**
@@ -251,18 +316,19 @@ public class MetroGraph {
 		public void addEdge(E edge) {
 			this.edges.add(edge);
 		}
+
+		/**
+		 * If the graph does not contain existing Node 'node', then add it to
+		 * the graph, then add an edge. Otherwise, just add the edge.
+		 *
+		 * @param node
+		 * @param edge
+		 */
 		public void addEdge(V node, E edge) {
 			if (!this.graph.containsKey(node)) {
 				this.graph.put(node, new ArrayList<>());
 			}
 			this.graph.get(node).add(edge);
-		}
-
-		public int time() {
-			return this.time;
-		}
-		public boolean rush() {
-			return this.rush;
 		}
 
 		/**
@@ -272,8 +338,13 @@ public class MetroGraph {
 		 * @param <V>
 		 */
 		class Path<V extends Node> {
+			// A LinkedList is a good way to represent a path because it is just one node to the next.
 			private LinkedList<V> path = new LinkedList<>();
 
+			/**
+			 * If we already have some existing path, then we can just 'duplicate' it.
+			 * @param path
+			 */
 			public Path(LinkedList<V> path) {
 				path.iterator().forEachRemaining(e -> this.path.add(e));
 			}
@@ -286,6 +357,9 @@ public class MetroGraph {
 			public Path() { }
 
 			public Path addToPath(V node) {
+				return addToPath(node, 0.0);
+			}
+			public Path addToPath(V node, double timeTaken) {
 				this.path.add(node);
 				return this;
 			}
@@ -319,14 +393,52 @@ public class MetroGraph {
 				}
 				return true;
 			}
+
+			/**
+			 * We will visually display the path, along with the trains that are readily available
+			 * and required to take the route in this path.
+			 *
+			 * We will also crudely calculate the time it has taken to get to this station,
+			 * by assumption that the train travels at 0.35 km / min, which is not entirely accurate,
+			 * but the MTA is rather inconsistent, and it takes time to transfer between stations,
+			 * so this will do relatively okay in providing some prediction of time it will take.
+			 *
+			 * @return the path along with the trains, time and stations required
+			 */
 			@Override
 			public String toString() {
 				StringBuilder builder = new StringBuilder();
+				LinkedList<Node> path = new LinkedList<>(this.path);
 
-				for (Iterator<V> itr = this.path.iterator(); itr.hasNext();) {
-					builder.append(itr.next().getStation());
-					if (itr.hasNext()) {
-						builder.append(" -> ");
+				/*
+				We will visually display the path, along with the trains that are readily available
+				and required to take the route in this path.
+				 */
+				while (!path.isEmpty()) {
+					Node next = path.poll();
+					builder.append(next.getStation());
+
+					Set<String> trains = new HashSet<>();
+
+					if (path.peek() != null) {
+						Node second = path.peek();
+
+						next.getTrains().forEach(fromTrain -> second.getTrains().forEach(toTrain -> {
+							if (fromTrain.train().equals(toTrain.train())) {
+								switch (fromTrain.type()) {
+									case LOCAL: trains.add("(" + fromTrain.train() + ")"); break;
+									case EXPRESS: trains.add("<" + fromTrain.train() + ">"); break;
+								}
+							}
+						}));
+
+						for (String line : trains) {
+							builder.append(" " + line);
+						}
+						builder.append(" [" + new DecimalFormat("0.00").format(Math.round(next.distance(second) / 0.35)) + " mins]");
+						if (path.peek() != null) {
+							builder.append(" -> ");
+						}
 					}
 				}
 				return builder.toString();
@@ -340,7 +452,7 @@ public class MetroGraph {
 	 */
 	class Node implements Comparable<Node> {
 		private String station;
-		private double longitude, latitude;
+		private double latitude, longitude;
 
 		private int time;
 		private boolean rush;
@@ -349,22 +461,20 @@ public class MetroGraph {
 		private String lineConditions;
 		private Set<Train> trains;
 		private Map<String, Train.TrainType> connections;
-		// private Set<Integer> ignoredConditions;
-		private Optional<String> lastStop = Optional.empty();
+		private Optional<String> lastStop = Optional.empty(); // Assuming we do not indeed need this
 
 		private boolean visited;
 
-		public Node(String station, String[] connections, double longitude, double latitude, String lineConditions) {
+		public Node(String station, String[] connections, double latitude, double longitude, String lineConditions) {
 			if (station.isEmpty()) {
 				return;
 			}
 			this.station = station;
-			this.longitude = longitude;
 			this.latitude = latitude;
+			this.longitude = longitude;
 			this.lineConditions = lineConditions;
 
 			this.connections = new HashMap<>();
-			// this.ignoredConditions = new HashSet<>();
 
 			for (String connection : connections) {
 				if (connection.contains("Express")) {
@@ -513,9 +623,7 @@ public class MetroGraph {
 			} else if (data.contains("Express-weekdays") && dayType == Day.DayType.WEEKEND) {
 				return false;
 			}
-			/*
-			We will otherwise add whatever Local train that is available and conditions have been met.
-			 */
+			// We will otherwise add whatever Local train that is available and conditions have been met.
 			consumer.accept(train, type, getBound(data));
 			return true;
 		}
@@ -579,10 +687,9 @@ public class MetroGraph {
 			double dlat = Math.toRadians(node.getLatitude() - this.latitude);
 			double dlong = Math.toRadians(node.getLongitude() - this.longitude);
 
-			double a = Math.pow(Math.sin(dlat / 2), 2) + Math.cos(Math.toRadians(this.latitude)) * Math.cos(Math.toRadians(node.getLatitude())) * Math.pow(Math.sin(dlong / 2), 2);
-			double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+			double a = 0.5 - Math.cos(dlat) / 2 + Math.cos(Math.toRadians(this.latitude)) * Math.cos(Math.toRadians(node.getLatitude())) * (1 - Math.cos(dlong)) / 2;
 
-			return 6371 * c;
+			return 2 * 6371 * Math.asin(Math.sqrt(a));
 		}
 
 		@Override
@@ -630,6 +737,14 @@ public class MetroGraph {
 		public double weight() {
 			return this.weight;
 		}
+		public static Edge of(Set<Edge> edges, Node from, Node to) {
+			for (Edge edge : edges) {
+				if (edge.from().equals(from) && edge.to().equals(to)) {
+					return edge;
+				}
+			}
+			return null;
+		}
 	}
 
 	/**
@@ -639,7 +754,8 @@ public class MetroGraph {
 	 *
 	 * @param train
 	 * @param type
-	 * @param bound
+	 * @param bound (Under the assumption that bounds are the same for each line given a certain
+	 * 				time, we will not have to worry much about bounds.)
 	 */
 	record Train(String train, TrainType type, Bound bound) {
 		public enum TrainType { LOCAL, EXPRESS }
