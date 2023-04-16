@@ -357,9 +357,6 @@ public class MetroGraph {
 			public Path() { }
 
 			public Path addToPath(V node) {
-				return addToPath(node, 0.0);
-			}
-			public Path addToPath(V node, double timeTaken) {
 				this.path.add(node);
 				return this;
 			}
