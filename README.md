@@ -66,7 +66,7 @@ Within the ***Node*** object, the trains that are available given the user input
 
 ## PATH-FINDING ALGORITHM
 
-> This program runs Dijkstra’s algorithm when a graph is constructed. This algorithm attempts to find the shortest path in the graph given edge weights, the weights in question are represented by distance in kilometers between two stations (where they are represented by nodes). Therefore, the shortest path will be the path in which all edge weights within the path add up to < *tentative distance*.
+This program runs Dijkstra’s algorithm when a graph is constructed. This algorithm attempts to find the shortest path in the graph given edge weights, the weights in question are represented by distance in kilometers between two stations (where they are represented by nodes). Therefore, the shortest path will be the path in which all edge weights within the path add up to < *tentative distance*.
 
 In another scenario, however, if the program is written to simply find any “shortest path” in the graph without regard for distance, then one must assume that all edge weights are equal in value, then run Dijkstra’s once more (which is actually just Breadth First Search).
 
@@ -74,7 +74,7 @@ During the running of the algorithm, a ***Path*** is created and overridden (wit
 
 ## SOFTWARE DISCUSSION
 
-> Despite many changes in the structure of the code, the intentions had changed very little. At first, the program was intended to topologically sort the graph in order to ease the algorithmic process, but found it unnecessary and Dijkstra’s algorithm was enough. Furthermore, the graph structure had originally been intended to be defined as an adjacency matrix so that matrix manipulation can be utilized, especially when calculating the minimum number of walks necessary for the program, but this idea was disregarded as it was viewed as too dense and would require far more computation than what an adjacency list would need (despite the slight overhead issue when dealing with an adjacency list). Lastly, the cardinal bounds as well as the final stop Optional were disregarded, as an assumption was made of the direction of the edges that deemed it little importance.
+Despite many changes in the structure of the code, the intentions had changed very little. At first, the program was intended to topologically sort the graph in order to ease the algorithmic process, but found it unnecessary and Dijkstra’s algorithm was enough. Furthermore, the graph structure had originally been intended to be defined as an adjacency matrix so that matrix manipulation can be utilized, especially when calculating the minimum number of walks necessary for the program, but this idea was disregarded as it was viewed as too dense and would require far more computation than what an adjacency list would need (despite the slight overhead issue when dealing with an adjacency list). Lastly, the cardinal bounds as well as the final stop Optional were disregarded, as an assumption was made of the direction of the edges that deemed it little importance.
 
 Lastly, the choices made during the development of this software had seen many specific handling during the coding process. It had to be assumed that few things within the project required definitions provided only by the programmer. Moreover, the data that had to be accessed needed to be closely analyzed to notice variations within certain stations that would largely affect the construction of the graph, and thus the path and objective of the program if not handled. 
 
